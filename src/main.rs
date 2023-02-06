@@ -6,6 +6,7 @@ use piston_window::ButtonState;
 use piston_window::Event;
 use piston_window::DrawState;
 use piston_window::Input;
+use piston_window::Key;
 use piston_window::Motion;
 use piston_window::MouseButton;
 use piston_window::PistonWindow;
@@ -113,13 +114,14 @@ fn random_points(width: u32, height: u32, number_of_points: usize) -> Vec<Point>
 }
 
 fn main() {
-    let width = 1000;
-    let height = 1000;
-    let path = "result/test003.png";
-    let number_of_points = 1000;
+    let width = 800;
+    let height = 600;
+    let number_of_points = 3000;
     let lloyd_relaxation_iterations = 15; 
     let mut v = VoronoiImage::random(number_of_points, lloyd_relaxation_iterations, width, height).unwrap();
+    let t = chrono::Local::now();
     let img = v.draw();
+    println!("Draw duration (without cache): {}ms", (chrono::Local::now() - t).num_milliseconds());
 
     let mut window: PistonWindow = WindowSettings::new("TEST", [width, height])
         .exit_on_esc(true)
@@ -130,6 +132,7 @@ fn main() {
     let image = piston_window::Image::new();
     let mut mouse_pos = [0., 0.];
     let mut texture = piston_window::Texture::from_image(&mut ctx, &img, &piston_window::TextureSettings::new()).unwrap();
+    let mut last = chrono::Local::now();
     while let Some(e) = window.next() {
         window.draw_2d(&e, |c, g, _| {
             image.draw(&texture, &DrawState::default(), c.transform, g);
@@ -142,8 +145,9 @@ fn main() {
                     }
                 },
                 Input::Button(but) => {
-                    if let Button::Mouse(mouse_but) = but.button {
-                        if let MouseButton::Left = mouse_but { if let ButtonState::Release = but.state {
+                    match but.button { Button::Mouse(mouse_but) =>  {
+                        if let MouseButton::Left = mouse_but { if let ButtonState::Release = but.state { if (chrono::Local::now() - last).num_milliseconds() > 300 {
+                            last = chrono::Local::now();
                             println!("Position of the mouse: {:?}", mouse_pos);
                             let id = v.diagram.cell(0).iter_path(Point { x: mouse_pos[0], y: mouse_pos[1]}).last().unwrap();
                             if v.colors[id] == Rgba([20, 80, 240, 255]) {
@@ -153,10 +157,16 @@ fn main() {
                             }
                             let t = chrono::Local::now();
                             let img = v.draw();
-                            println!("Draw duration: {}ms", (chrono::Local::now() - t).num_milliseconds());
+                            println!("Draw duration (with cache): {}ms", (chrono::Local::now() - t).num_milliseconds());
                             texture = piston_window::Texture::from_image(&mut ctx, &img, &piston_window::TextureSettings::new()).unwrap();
+                        }}}
+                    }, 
+                    Button::Keyboard(k) => {
+                        if let Key::Return = k {if let ButtonState::Release = but.state {
+                            v.draw().save("result/CURRENT.png").unwrap();
                         }}
                     }
+                    _ => {}}
                 },
                 _ => {}
             }
