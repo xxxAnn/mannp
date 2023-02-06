@@ -32,22 +32,21 @@ impl<T> VoronoiImage<T>
 where T: Into<Rgba<u8>> + Clone,
 Vec<T>: FromIterator<Rgba<u8>> {
     fn new(voronoi_builder: VoronoiBuilder, colors: Vec<T>) ->  Result<Self, &'static str> {
+        println!("Got here!");
         let mut r = Err("Unknown error");
         if let Some(diagram) = voronoi_builder.build() { 
+            println!("Got here too!");
             if diagram.sites().len() == colors.len() {
                 r = Ok(Self { diagram, colors, c: None });
             } else {
                 r = Err("The number of colors does not match the number of sites.");
             }
         }
+        println!("Got there!");
         r
     }
 
     fn random(number_of_points: usize, lloyd_relaxation_iterations: usize, width: u32, height: u32) -> Result<Self, &'static str> {
-        let mut rng = rand::thread_rng();
-
-        let color_range = rand::distributions::Uniform::<u8>::new(0, 255);
-
         Self::new(VoronoiBuilder::default()
             .set_sites(random_points(width, height, number_of_points))
             .set_clip_behavior(voronoice::ClipBehavior::None)
@@ -114,6 +113,15 @@ fn random_points(width: u32, height: u32, number_of_points: usize) -> Vec<Point>
 }
 
 fn main() {
+    let result = std::panic::catch_unwind(|| {
+        test();
+        print!("{}[2J", 27 as char);
+    });
+    test()
+}
+
+fn test() {
+
     let width = 800;
     let height = 600;
     let number_of_points = 3000;
